@@ -42,13 +42,29 @@ parser.add_argument('--pretrained', type=bool, default=False)
 parser.add_argument('--save_folder', default='weights/', help='Location to save checkpoint models')
 parser.add_argument('--prefix', default='F7', help='Location to save checkpoint models')
 
+# run on my local windows machine:
+# python main.py --gpu_mode='' --data_dir='./REDS4/GT' --file_list='train_list.txt' --other_dataset=True
+
 opt = parser.parse_args()
+
+### customization
+opt.data_dir = './vimeo90k/'
+opt.file_list = 'available_list.txt'
+opt.other_dataset = False
+opt.threads = 8
+opt.snapshots = 5
+opt.batchSize = 1
+opt.gpus = 1
+opt.nFrames = 7
+###
+
 gpus_list = range(opt.gpus)
 hostname = str(socket.gethostname())
 cudnn.benchmark = True
 print(opt)
 
-def train(epoch):
+
+def train(epoch): # 这里只是train一次，epoch传进来只是为了记录序数，无语
     epoch_loss = 0
     model.train()
     for iteration, batch in enumerate(training_data_loader, 1):
@@ -96,6 +112,7 @@ if cuda and not torch.cuda.is_available():
 torch.manual_seed(opt.seed)
 if cuda:
     torch.cuda.manual_seed(opt.seed)
+    torch.cuda.empty_cache()
 
 print('===> Loading datasets')
 train_set = get_training_set(opt.data_dir, opt.nFrames, opt.upscale_factor, opt.data_augmentation, opt.file_list, opt.other_dataset, opt.patch_size, opt.future_frame)
