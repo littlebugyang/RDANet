@@ -153,6 +153,7 @@ class ResnetBlock(torch.nn.Module):
             
         return out
 
+
 class UpBlock(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, bias=True, activation='prelu', norm=None):
         super(UpBlock, self).__init__()
@@ -166,6 +167,7 @@ class UpBlock(torch.nn.Module):
     	h1 = self.up_conv3(l0 - x)
     	return h1 + h0
 
+
 class UpBlockPix(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, scale=4, bias=True, activation='prelu', norm=None):
         super(UpBlockPix, self).__init__()
@@ -178,7 +180,8 @@ class UpBlockPix(torch.nn.Module):
     	l0 = self.up_conv2(h0)
     	h1 = self.up_conv3(l0 - x)
     	return h1 + h0
-        
+
+
 class D_UpBlock(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, num_stages=1, bias=True, activation='prelu', norm=None):
         super(D_UpBlock, self).__init__()
@@ -193,6 +196,7 @@ class D_UpBlock(torch.nn.Module):
     	l0 = self.up_conv2(h0)
     	h1 = self.up_conv3(l0 - x)
     	return h1 + h0
+
 
 class D_UpBlockPix(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, num_stages=1, scale=4, bias=True, activation='prelu', norm=None):
@@ -209,6 +213,7 @@ class D_UpBlockPix(torch.nn.Module):
     	h1 = self.up_conv3(l0 - x)
     	return h1 + h0
 
+
 class DownBlock(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, bias=True, activation='prelu', norm=None):
         super(DownBlock, self).__init__()
@@ -222,6 +227,7 @@ class DownBlock(torch.nn.Module):
     	l1 = self.down_conv3(h0 - x)
     	return l1 + l0
 
+
 class DownBlockPix(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, scale=4,bias=True, activation='prelu', norm=None):
         super(DownBlockPix, self).__init__()
@@ -234,6 +240,7 @@ class DownBlockPix(torch.nn.Module):
     	h0 = self.down_conv2(l0)
     	l1 = self.down_conv3(h0 - x)
     	return l1 + l0
+
 
 class D_DownBlock(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, num_stages=1, bias=True, activation='prelu', norm=None):
@@ -250,6 +257,7 @@ class D_DownBlock(torch.nn.Module):
     	l1 = self.down_conv3(h0 - x)
     	return l1 + l0
 
+
 class D_DownBlockPix(torch.nn.Module):
     def __init__(self, num_filter, kernel_size=8, stride=4, padding=2, num_stages=1, scale=4, bias=True, activation='prelu', norm=None):
         super(D_DownBlockPix, self).__init__()
@@ -264,6 +272,7 @@ class D_DownBlockPix(torch.nn.Module):
     	h0 = self.down_conv2(l0)
     	l1 = self.down_conv3(h0 - x)
     	return l1 + l0
+
 
 class PSBlock(torch.nn.Module):
     def __init__(self, input_size, output_size, scale_factor, kernel_size=3, stride=1, padding=1, bias=True, activation='prelu', norm='batch'):
@@ -328,7 +337,7 @@ class Upsampler(torch.nn.Module):
         if self.activation is not None:
             out = self.act(out)
         return out
-             
+
 
 class Upsample2xBlock(torch.nn.Module):
     def __init__(self, input_size, output_size, bias=True, upsample='deconv', activation='relu', norm='batch'):
@@ -358,3 +367,26 @@ class Upsample2xBlock(torch.nn.Module):
         out = self.upsample(x)
         return out
 
+class AttentionBlock(torch.nn.Module):
+    def __init__(self, in_channels, out_channels, reduction=16):
+        super(AttentionBlock, self).__init__()
+        module_ca = [
+            torch.nn.AdaptiveAvgPool2d(1),
+            torch.nn.Conv2d(in_channels, in_channels // reduction, 1, padding=0, bias=True),
+            torch.nn.ReLU(inplace=True),
+            torch.nn.Conv2d(in_channels // reduction, in_channels, 1, padding=0, bias=True),
+        ]
+        module_sa = [
+            torch.nn.Conv2d(in_channels, 1 * in_channels, 3, 1, padding=1, bias=True, groups=in_channels)
+        ]
+        self.ca = torch.nn.Sequential(*module_ca)
+        self.sa = torch.nn.Sequential(*module_sa)
+
+    def forward(self, x):
+        CA = self.ca(x)
+        SA = self.sa(x)
+        # print(CA.size(), SA.size(), self.kernel_size)
+        FA = CA + SA
+        FA = torch.nn.Sigmoid()(FA)
+        # print(FA.size(), x.size())
+        return x * FA
