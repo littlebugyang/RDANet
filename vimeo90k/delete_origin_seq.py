@@ -1,0 +1,11 @@
+import shutil
+import os
+
+num_seq = 78
+num_digit = 5
+seq_dir = 'sequences'
+
+for i in range(num_seq):
+    potential_dir = os.path.join(os.getcwd(), seq_dir, str(i+1).zfill(num_digit))
+    if os.path.exists(potential_dir):
+        shutil.rmtree(potential_dir)

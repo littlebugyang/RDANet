@@ -3,18 +3,6 @@ import shutil
 from PIL import Image
 from numpy import average, dot, linalg
 
-# for i in range(58):
-#     potential_dir = os.path.join('./vimeo90k/sequences', str(i+21).zfill(5))
-#     if os.path.exists(potential_dir):
-#         shutil.rmtree(potential_dir)
-# exit(0)
-
-# for i in range(5000):
-#     potential_dir = os.path.join('./vimeo90k/sequences', 'seq_'+str(i+1).zfill(7))
-#     if os.path.exists(potential_dir):
-#         shutil.rmtree(potential_dir)
-# exit(0)
-
 # 对图片进行统一化处理
 def get_thum(image, size=(64, 64), greyscale=False):
     # 利用image对图像大小重新设置, Image.ANTIALIAS为高质量的
