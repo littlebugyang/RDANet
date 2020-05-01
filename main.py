@@ -51,7 +51,7 @@ opt = parser.parse_args()
 opt.data_dir = './vimeo90k/'
 opt.file_list = 'available_list.txt'
 opt.other_dataset = False
-opt.threads = 8
+# opt.threads = 1
 opt.snapshots = 5
 opt.batchSize = 1
 opt.gpus = 1
@@ -75,14 +75,11 @@ def train(epoch): # 这里只是train一次，epoch传进来只是为了记录�
             bicubic = Variable(bicubic).cuda(gpus_list[0])
             neigbor = [Variable(j).cuda(gpus_list[0]) for j in neigbor]
             flow = [Variable(j).cuda(gpus_list[0]).float() for j in flow]
-
         optimizer.zero_grad()
         t0 = time.time()
         prediction = model(input, neigbor, flow)
-        
         if opt.residual:
             prediction = prediction + bicubic
-            
         loss = criterion(prediction, target)
         t1 = time.time()
         epoch_loss += loss.data
@@ -117,7 +114,7 @@ if cuda:
 print('===> Loading datasets')
 train_set = get_training_set(opt.data_dir, opt.nFrames, opt.upscale_factor, opt.data_augmentation, opt.file_list, opt.other_dataset, opt.patch_size, opt.future_frame)
 #test_set = get_eval_set(opt.test_dir, opt.nFrames, opt.upscale_factor, opt.data_augmentation)
-training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=True)
+training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=False)
 #testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batch_size=opt.batchSize, shuffle=False)
 
 print('===> Building model ', opt.model_type)
@@ -143,16 +140,14 @@ if cuda:
     criterion = criterion.cuda(gpus_list[0])
 
 optimizer = optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.999), eps=1e-8)
-
 for epoch in range(opt.start_epoch, opt.nEpochs + 1):
     train(epoch)
     #test()
-
     # learning rate is decayed by a factor of 10 every half of total epochs
     if (epoch+1) % (opt.nEpochs/2) == 0:
         for param_group in optimizer.param_groups:
             param_group['lr'] /= 10.0
         print('Learning rate decay: lr={}'.format(optimizer.param_groups[0]['lr']))
-            
+    
     if (epoch+1) % (opt.snapshots) == 0:
         checkpoint(epoch)

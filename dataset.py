@@ -107,7 +107,6 @@ def load_img_future(filepath, nFrames, scale, other_dataset):
 
             #neigbor.append(modcrop(Image.open(neighbour_file_path).convert('RGB'), scale).resize((int(target.size[0] / scale), int(target.size[1] / scale)), Image.BICUBIC))
             
-            print(neighbour_file_path)
     return target, input, neigbor
 
 
@@ -208,7 +207,7 @@ class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir, nFrames, upscale_factor, data_augmentation, file_list, other_dataset, patch_size,
                  future_frame, transform=None):
         super(DatasetFromFolder, self).__init__()
-        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:10000] # max: [0:26770]
+        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:1000] # max: [0:26770]
         self.nFrames = nFrames
         self.upscale_factor = upscale_factor
         self.transform = transform
