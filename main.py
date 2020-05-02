@@ -93,7 +93,7 @@ def save_epoch_result(result_dir, epoch, iteration, results):
 def train(epoch): # 这里只是train一次，epoch传进来只是为了记录序数，无语
     epoch_loss = 0
     model.train()
-    save_result = (epoch % (opt.snapshots) == 0)
+    save_result = True
     for iteration, batch in enumerate(training_data_loader, 1):
         input, target, neigbor, flow, bicubic = batch[0], batch[1], batch[2], batch[3], batch[4]
         if cuda:
@@ -108,9 +108,10 @@ def train(epoch): # 这里只是train一次，epoch传进来只是为了记录�
         if opt.residual:
             prediction = prediction + bicubic
 
-        # save the result of this epoch
+        # save the result of this epoch (just once)
         if save_result:
             save_epoch_result(epoch_result_dir, epoch, iteration, [input.cpu().data, target.cpu().data, bicubic.cpu().data, prediction.cpu().data])
+            save_result = False
 
         loss = criterion(prediction, target)
         t1 = time.time()
