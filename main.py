@@ -58,6 +58,8 @@ opt.gpus = 1
 opt.nFrames = 7
 ###
 
+run_start_time = str(time.time()).split('.')[0]
+
 gpus_list = range(opt.gpus)
 hostname = str(socket.gethostname())
 cudnn.benchmark = True
@@ -98,7 +100,7 @@ def print_network(net):
     print('Total number of parameters: %d' % num_params)
 
 def checkpoint(epoch):
-    model_out_path = opt.save_folder+str(opt.upscale_factor)+'x_'+hostname+opt.model_type+opt.prefix+"_epoch_{}.pth".format(epoch)
+    model_out_path = opt.save_folder+str(opt.upscale_factor)+'x_'+hostname+'_'+run_start_time+'_'+opt.model_type+opt.prefix+"_epoch_{}.pth".format(epoch)
     torch.save(model.state_dict(), model_out_path)
     print("Checkpoint saved to {}".format(model_out_path))
 
