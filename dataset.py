@@ -202,7 +202,7 @@ class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir, nFrames, upscale_factor, data_augmentation, file_list, other_dataset, patch_size,
                  future_frame, transform=None):
         super(DatasetFromFolder, self).__init__()
-        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:1000] # max: [0:25402]
+        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:25400] # max: [0:25402]
         self.image_filenames = [join(image_dir, x) for x in self.image_filenames]
         self.nFrames = nFrames
         self.upscale_factor = upscale_factor

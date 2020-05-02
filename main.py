@@ -14,6 +14,8 @@ from data import get_training_set, get_eval_set
 import pdb
 import socket
 import time
+import cv2
+import shutil
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch Super Res Example')
@@ -62,13 +64,36 @@ run_start_time = str(time.time()).split('.')[0]
 
 gpus_list = range(opt.gpus)
 hostname = str(socket.gethostname())
+epoch_result_dir = './epoch_results'
 cudnn.benchmark = True
 print(opt)
 
+def save_epoch_result(result_dir, epoch, iteration, results):
+    # if the variable "results" is type of dict, the code should be more robust
+    epoch_dir = os.path.join(result_dir, 'epoch_'+str(epoch).zfill(5))
+    if os.path.exists(epoch_dir):
+        shutil.rmtree(epoch_dir)
+    os.mkdir(epoch_dir)
+
+    input_result_path = os.path.join(epoch_dir, str(iteration).zfill(5) + '_input.png')
+    target_result_path = os.path.join(epoch_dir, str(iteration).zfill(5) + '_target.png')
+    bicubic_result_path = os.path.join(epoch_dir, str(iteration).zfill(5) + '_bicubic.png')
+    flow_result_path = os.path.join(epoch_dir, str(iteration).zfill(5) + '_flow.png')
+    prediction_result_path = os.path.join(epoch_dir, str(iteration).zfill(5) + '_prediction.png')
+
+    input_img = results[0].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    target_img = results[1].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    bicubic_img = results[2].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    prediction_img = results[3].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    cv2.imwrite(input_result_path, cv2.cvtColor(input_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    cv2.imwrite(target_result_path, cv2.cvtColor(target_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    cv2.imwrite(bicubic_result_path, cv2.cvtColor(bicubic_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    cv2.imwrite(prediction_result_path, cv2.cvtColor(prediction_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 def train(epoch): # 这里只是train一次，epoch传进来只是为了记录序数，无语
     epoch_loss = 0
     model.train()
+    save_result = (epoch % (opt.snapshots) == 0)
     for iteration, batch in enumerate(training_data_loader, 1):
         input, target, neigbor, flow, bicubic = batch[0], batch[1], batch[2], batch[3], batch[4]
         if cuda:
@@ -82,6 +107,11 @@ def train(epoch): # 这里只是train一次，epoch传进来只是为了记录�
         prediction = model(input, neigbor, flow)
         if opt.residual:
             prediction = prediction + bicubic
+
+        # save the result of this epoch
+        if save_result:
+            save_epoch_result(epoch_result_dir, epoch, iteration, [input.cpu().data, target.cpu().data, bicubic.cpu().data, prediction.cpu().data])
+
         loss = criterion(prediction, target)
         t1 = time.time()
         epoch_loss += loss.data
@@ -91,6 +121,7 @@ def train(epoch): # 这里只是train一次，epoch传进来只是为了记录�
         print("===> Epoch[{}]({}/{}): Loss: {:.4f} || Timer: {:.4f} sec.".format(epoch, iteration, len(training_data_loader), loss.item(), (t1 - t0)))
 
     print("===> Epoch {} Complete: Avg. Loss: {:.4f}".format(epoch, epoch_loss / len(training_data_loader)))
+    return epoch_loss / len(training_data_loader)
 
 def print_network(net):
     num_params = 0
@@ -143,7 +174,10 @@ if cuda:
 
 optimizer = optim.Adam(model.parameters(), lr=opt.lr, betas=(0.9, 0.999), eps=1e-8)
 for epoch in range(opt.start_epoch, opt.nEpochs + 1):
-    train(epoch)
+    avg_loss = train(epoch)
+    loss_file = open('./epoch_loss.txt', mode='a')
+    loss_file.write('Epoch [' + str(epoch) + '] average loss: ' + str(avg_loss.item()) + '\n')
+    loss_file.close()
     #test()
     # learning rate is decayed by a factor of 10 every half of total epochs
     if (epoch+1) % (opt.nEpochs/2) == 0:
