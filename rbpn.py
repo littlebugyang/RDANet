@@ -27,40 +27,40 @@ class Net(nn.Module):
         	padding = 2
         
         #Initial Feature Extraction
-        self.feat0 = ConvBlock(num_channels, base_filter, 3, 1, 1, activation='prelu', norm=None) # map to L_t 的特殊 feature extraction block
-        self.feat1 = ConvBlock(8, base_filter, 3, 1, 1, activation='prelu', norm=None) # map cat 在一起的通用的 feature extraction block，所以通道为8个
+        self.feat0 = ConvBlock(num_channels, base_filter, 3, 1, 1, activation='relu', norm=None) # map to L_t 的特殊 feature extraction block
+        self.feat1 = ConvBlock(8, base_filter, 3, 1, 1, activation='relu', norm=None) # map cat 在一起的通用的 feature extraction block，所以通道为8个
 
         ###DBPNS
         self.DBPN = DBPNS(base_filter, feat, num_stages, scale_factor)
                 
         #Res-Block1
         modules_body1 = [
-            ResnetBlock(base_filter, kernel_size=3, stride=1, padding=1, bias=True, activation='prelu', norm=None) \
+            ResnetBlock(base_filter, kernel_size=3, stride=1, padding=1, bias=True, activation='relu', norm=None) \
             for _ in range(n_resblock)]
-        modules_body1.append(DeconvBlock(base_filter, feat, kernel, stride, padding, activation='prelu', norm=None))
+        modules_body1.append(DeconvBlock(base_filter, feat, kernel, stride, padding, activation='relu', norm=None))
         self.res_feat1 = nn.Sequential(*modules_body1)
         
         #Res-Block2
         modules_body2 = [
-            ResnetBlock(feat, kernel_size=3, stride=1, padding=1, bias=True, activation='prelu', norm=None) \
+            ResnetBlock(feat, kernel_size=3, stride=1, padding=1, bias=True, activation='relu', norm=None) \
             for _ in range(n_resblock)]
-        modules_body2.append(ConvBlock(feat, feat, 3, 1, 1, activation='prelu', norm=None))
+        modules_body2.append(ConvBlock(feat, feat, 3, 1, 1, activation='relu', norm=None))
         self.res_feat2 = nn.Sequential(*modules_body2)
         
         #Res-Block3 就是 Net_{D}
         modules_body3 = [
-            ResnetBlock(feat, kernel_size=3, stride=1, padding=1, bias=True, activation='prelu', norm=None) \
+            ResnetBlock(feat, kernel_size=3, stride=1, padding=1, bias=True, activation='relu', norm=None) \
             for _ in range(n_resblock)]
         # 接下来的卷积层是downsample的过程，但是我不想要这个层在我的 attention mechanism 中
-        # modules_body3.append(ConvBlock(feat, base_filter, kernel, stride, padding, activation='prelu', norm=None))
+        modules_body3.append(ConvBlock(feat, base_filter, kernel, stride, padding, activation='relu', norm=None))
         self.res_feat3 = nn.Sequential(*modules_body3)
 
         # 接下来的内容与上面本来 modules_body3 后面 append 的内容一致，以备不时之需
-        modules_body4 = [ConvBlock(feat, base_filter, kernel, stride, padding, activation='prelu', norm=None)]
-        self.res_feat4 = nn.Sequential(*modules_body4)
+        # modules_body4 = [ConvBlock(feat, base_filter, kernel, stride, padding, activation='relu', norm=None)]
+        # self.res_feat4 = nn.Sequential(*modules_body4)
 
         modules_body5 = [
-            AttentionBlock(feat, base_filter, 16) # feat = 64, base_filter = 256
+            AttentionBlock(base_filter, feat, 16) # feat = 64, base_filter = 256
         ]
         self.am = nn.Sequential(*modules_body5)
         
@@ -103,7 +103,7 @@ class Net(nn.Module):
             d_r = self.res_feat3(h) # decoder's resnet
             am_o = self.am(d_r) # attention module's output
             d_r += am_o
-            feature_input = self.res_feat4(d_r) # 还原之前的 downsampling 的过程，以便于后面用来 concat
+            # feature_input = self.res_feat4(d_r) # 还原之前的 downsampling 的过程，以便于后面用来 concat
 
             # feat_input = self.res_feat3(h) # res_feat3 指的是 Net_{D}
         

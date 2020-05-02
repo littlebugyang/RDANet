@@ -373,7 +373,7 @@ class AttentionBlock(torch.nn.Module):
         module_ca = [
             torch.nn.AdaptiveAvgPool2d(1),
             torch.nn.Conv2d(in_channels, in_channels // reduction, 1, padding=0, bias=True),
-            torch.nn.PReLU(),
+            torch.nn.ReLU(inplace=True),
             torch.nn.Conv2d(in_channels // reduction, in_channels, 1, padding=0, bias=True),
         ]
         module_sa = [

@@ -52,7 +52,7 @@ def load_img_future(filepath, nFrames, scale, other_dataset):
     tt = int(nFrames / 2)  # 准备往左右拿 future frames
     if other_dataset:
         target = modcrop(Image.open(filepath).convert('RGB'), scale)
-        target = target.resize((int(target.size[0] / 2), int(target.size[1] / 2)), Image.BICUBIC)
+        # target = target.resize((int(target.size[0] / 2), int(target.size[1] / 2)), Image.BICUBIC)
         # 从这里的 input 和 target 的定义可以看出，input 是 输入图片下采样而来
         input = target.resize((int(target.size[0] / scale), int(target.size[1] / scale)), Image.BICUBIC)
 
