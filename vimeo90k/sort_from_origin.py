@@ -3,6 +3,15 @@ import shutil
 from PIL import Image
 from numpy import average, dot, linalg
 
+seq_root = "sequences"
+scene_num = 78
+
+# 假设原来每个seq文件夹中的帧数都为n_frame_in_seq
+n_frame_in_seq = 3
+
+# sort 之后每个 seq 文件夹中的帧数
+n_target_frame = 7
+
 # 对图片进行统一化处理
 def get_thum(image, size=(64, 64), greyscale=False):
     # 利用image对图像大小重新设置, Image.ANTIALIAS为高质量的
@@ -39,7 +48,7 @@ def output_available_list(n_frame, root):
     # n_frame 为符合数据入口处要求输入的 nFrames，默认为 7
     seq_num = len(os.listdir(root)) - 78
     # 以上78为原有数据集的78个文件夹
-    output_file = open('./vimeo90k/available_list.txt', mode='w')
+    output_file = open('./available_list.txt', mode='w')
     
     for i in range(seq_num):
         seq_dir = os.path.join(root, 'seq_' + str(i+1).zfill(7))
@@ -66,12 +75,6 @@ def output_available_list(n_frame, root):
     
     output_file.close()
 
-seq_root = "./vimeo90k/sequences/"
-scene_num = 78
-
-# 假设原来每个seq文件夹中的帧数都为n_frame_in_seq
-n_frame_in_seq = 3
-
 seq_count = 0
 img_count = 0
 
@@ -79,7 +82,7 @@ if n_frame_in_seq < 3:
     print("工作很难进行下去！")
     exit(1)
 
-last_img_paths = ['./vimeo90k/default.png'] * n_frame_in_seq
+last_img_paths = ['default.png'] * n_frame_in_seq
 
 seq_dir = ''
 
@@ -97,7 +100,7 @@ for i in range(scene_num):
         skip_times = 0
 
         # 发现该seq中的首帧与上个seq中的第2帧一样，当前seq文件夹中可以跳几个帧
-        if last_img_paths[1] != './vimeo90k/default.png':
+        if last_img_paths[1] != 'default.png':
             cos_diff = image_similarity_vectors_via_numpy(Image.open(os.path.join(scene_sub_dir, 'im1.png')),
                                                           Image.open(last_img_paths[1]))
             if int(cos_diff) == 1 or cos_diff > 0.99:
@@ -129,4 +132,4 @@ for i in range(scene_num):
 
 print('Concatenation done')
 
-output_available_list(7, seq_root)
+output_available_list(n_target_frame, seq_root)
