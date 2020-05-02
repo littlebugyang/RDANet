@@ -91,11 +91,6 @@ def load_img_future(filepath, nFrames, scale, other_dataset):
             neighbour_file_name = 'im' + str(neighbour_index).zfill(5) + '.png'
             split_result[-1] = neighbour_file_name
             neighbour_file_path = '/'.join(split_result)
-            if filecmp.cmp(filepath, neighbour_file_path):
-                dangerous_list_file = open('./vimeo90k/dangerous_list.txt', mode='a')
-                dangerous_list_file.write(filepath + '\n')
-                dangerous_list_file.close()
-                print('Two files are identical: ', filepath, neighbour_file_path)
 
             if os.path.exists(neighbour_file_path):
                 temp = modcrop(Image.open(neighbour_file_path).convert('RGB'), scale).resize((int(target.size[0] / scale), int(target.size[1] / scale)), Image.BICUBIC)
@@ -207,7 +202,8 @@ class DatasetFromFolder(data.Dataset):
     def __init__(self, image_dir, nFrames, upscale_factor, data_augmentation, file_list, other_dataset, patch_size,
                  future_frame, transform=None):
         super(DatasetFromFolder, self).__init__()
-        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:1000] # max: [0:26770]
+        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][0:1000] # max: [0:25402]
+        self.image_filenames = [join(image_dir, x) for x in self.image_filenames]
         self.nFrames = nFrames
         self.upscale_factor = upscale_factor
         self.transform = transform

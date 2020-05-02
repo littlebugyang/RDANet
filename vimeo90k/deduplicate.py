@@ -15,7 +15,8 @@ temp_file = open(temp_path, mode='w')
 
 avail_paths = avail_file.readlines()
 
-for img_path in avail_paths:
+for line in avail_paths:
+    img_path = line.rstrip()
     half = int(n_frame / 2)
     split_result = re.split(r'[\\|/]', img_path)
     target_digit = int(split_result[-1][2:-4])
@@ -29,7 +30,7 @@ for img_path in avail_paths:
         split_result[-1] = neigh_name
         neigh_path = '/'.join(split_result)
 
-        if filecmp(img_path, neigh_path):
+        if filecmp.cmp(img_path, neigh_path):
             duplicated = True
             print("Duplicated: ", img_path + ' and ' + neigh_path)
             break
