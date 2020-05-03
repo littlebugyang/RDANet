@@ -60,6 +60,11 @@ opt.gpus = 1
 opt.nFrames = 7
 ###
 
+# continue training
+opt.pretrained = True
+opt.pretrained_sr = '4x_jupyter-231843-416226_1588442131_RBPNF7_epoch_44.pth'
+opt.start_epoch = 45
+
 run_start_time = str(time.time()).split('.')[0]
 
 gpus_list = range(opt.gpus)
@@ -93,7 +98,7 @@ def save_epoch_result(result_dir, epoch, iteration, results):
 def train(epoch): # 这里只是train一次，epoch传进来只是为了记录序数，无语
     epoch_loss = 0
     model.train()
-    save_result = True
+
     for iteration, batch in enumerate(training_data_loader, 1):
         input, target, neigbor, flow, bicubic = batch[0], batch[1], batch[2], batch[3], batch[4]
         if cuda:
@@ -108,10 +113,9 @@ def train(epoch): # 这里只是train一次，epoch传进来只是为了记录�
         if opt.residual:
             prediction = prediction + bicubic
 
-        # save the result of this epoch (just once)
-        if save_result:
+        # save the result of this epoch
+        if epoch % opt.snapshots == 0:
             save_epoch_result(epoch_result_dir, epoch, iteration, [input.cpu().data, target.cpu().data, bicubic.cpu().data, prediction.cpu().data])
-            save_result = False
 
         loss = criterion(prediction, target)
         t1 = time.time()
@@ -181,10 +185,10 @@ for epoch in range(opt.start_epoch, opt.nEpochs + 1):
     loss_file.close()
     #test()
     # learning rate is decayed by a factor of 10 every half of total epochs
-    if (epoch+1) % (opt.nEpochs/2) == 0:
+    if (epoch) % (opt.nEpochs/2) == 0:
         for param_group in optimizer.param_groups:
             param_group['lr'] /= 10.0
         print('Learning rate decay: lr={}'.format(optimizer.param_groups[0]['lr']))
     
-    if (epoch+1) % (opt.snapshots) == 0:
+    if (epoch) % (opt.snapshots) == 0:
         checkpoint(epoch)
