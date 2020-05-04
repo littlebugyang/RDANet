@@ -61,9 +61,9 @@ opt.nFrames = 7
 ###
 
 # continue training
-opt.pretrained = True
-opt.pretrained_sr = '4x_jupyter-231843-416226_1588442131_RBPNF7_epoch_44.pth'
-opt.start_epoch = 45
+# opt.pretrained = True
+# opt.pretrained_sr = '4x_jupyter-231843-416226_1588442131_RBPNF7_epoch_44.pth'
+# opt.start_epoch = 45
 
 run_start_time = str(time.time()).split('.')[0]
 
@@ -90,6 +90,8 @@ def save_epoch_result(result_dir, epoch, iteration, results):
     target_img = results[1].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
     bicubic_img = results[2].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
     prediction_img = results[3].squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+
+    # I don't know why there are only four images output during one epoch...
     cv2.imwrite(input_result_path, cv2.cvtColor(input_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
     cv2.imwrite(target_result_path, cv2.cvtColor(target_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
     cv2.imwrite(bicubic_result_path, cv2.cvtColor(bicubic_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
@@ -157,7 +159,7 @@ training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, ba
 
 print('===> Building model ', opt.model_type)
 if opt.model_type == 'RBPN':
-    model = RBPN(num_channels=3, base_filter=256,  feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor) 
+    model = RBPN(num_channels=3, base_filter=256, feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor) 
 
 model = torch.nn.DataParallel(model, device_ids=gpus_list)
 criterion = nn.L1Loss()

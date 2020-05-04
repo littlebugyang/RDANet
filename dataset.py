@@ -256,8 +256,8 @@ class DatasetFromFolderTest(data.Dataset):
         # transform-default: Transform to tensor
 
         super(DatasetFromFolderTest, self).__init__()
-        alist = [line.rstrip() for line in open(join(image_dir, file_list))]
-        self.image_filenames = [join(image_dir, x) for x in alist]
+        self.image_filenames = [line.rstrip() for line in open(join(image_dir, file_list))][41700:42000] # max: [42000:42337]
+        self.image_filenames = [join(image_dir, x) for x in self.image_filenames]
         self.nFrames = nFrames
         self.upscale_factor = upscale_factor
         self.transform = transform
@@ -273,7 +273,6 @@ class DatasetFromFolderTest(data.Dataset):
                                               self.other_dataset)
 
         flow = [get_flow(input, j) for j in neigbor]
-        print('You should not be able to see this: DatasetFromFolderTest.__getitem__')
 
         bicubic = rescale_img(input, self.upscale_factor)
 

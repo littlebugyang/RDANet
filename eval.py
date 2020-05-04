@@ -11,8 +11,8 @@ from rbpn import Net as RBPN
 from data import get_test_set
 from functools import reduce
 import numpy as np
+from skimage.measure import compare_ssim
 
-from scipy.misc import imsave
 import scipy.io as sio
 import time
 import cv2
@@ -39,6 +39,15 @@ parser.add_argument('--output', default='Results/', help='Location to save check
 parser.add_argument('--model', default='weights/RBPN_4x.pth', help='sr pretrained base model')
 
 opt = parser.parse_args()
+
+### customization
+opt.data_dir = './vimeo90k/'
+opt.file_list = 'available_list.txt'
+opt.other_dataset = False
+# opt.threads = 1
+opt.nFrames = 7
+opt.model = 'weights/4x_jupyter-231843-416226_1588468073_RBPNF7_epoch_150.pth'
+###
 
 gpus_list=range(opt.gpus)
 print(opt)
@@ -71,7 +80,10 @@ if cuda:
 def eval():
     model.eval()
     count=1
-    avg_psnr_predicted = 0.0
+    total_psnr_predicted = 0.0
+    total_psnr_bicubic = 0.0
+    total_ssim_predicted = 0.0
+    total_ssim_bicubic = 0.0
     for batch in testing_data_loader:
         input, target, neigbor, flow, bicubic = batch[0], batch[1], batch[2], batch[3], batch[4]
         
@@ -96,23 +108,38 @@ def eval():
         print("===> Processing: %s || Timer: %.4f sec." % (str(count), (t1 - t0)))
         save_img(prediction.cpu().data, str(count), True)
         #save_img(target, str(count), False)
+
+        single_ssim_predicted = SSIM(prediction.cpu().data, target.cpu().data)
+        total_ssim_predicted += single_ssim_predicted
+        single_ssim_bicubic = SSIM(bicubic.cpu().data, target.cpu().data)
+        total_ssim_bicubic += single_ssim_bicubic
         
-        #prediction=prediction.cpu()
-        #prediction = prediction.data[0].numpy().astype(np.float32)
-        #prediction = prediction*255.
+        prediction = prediction.cpu()
+        prediction = prediction.data[0].numpy().astype(np.float32)
+        prediction = prediction*255.
+
+        bicubic = bicubic.cpu()
+        bicubic = bicubic.data[0].numpy().astype(np.float32)
+        bicubic = bicubic*255.
         
-        #target = target.squeeze().numpy().astype(np.float32)
-        #target = target*255.
-                
-        #psnr_predicted = PSNR(prediction,target, shave_border=opt.upscale_factor)
-        #avg_psnr_predicted += psnr_predicted
+        target = target.squeeze().numpy().astype(np.float32)
+        target = target*255.
+
+        single_psnr_predicted = PSNR(prediction, target, shave_border=opt.upscale_factor)
+        total_psnr_predicted += single_psnr_predicted
+
+        single_psnr_bicubic = PSNR(bicubic, target, shave_border=opt.upscale_factor)
+        total_psnr_bicubic += single_psnr_bicubic
+
         count+=1
     
-    #print("PSNR_predicted=", avg_psnr_predicted/count)
+    print("PSNR(predicted): ", total_psnr_predicted / count)
+    print("PSNR(bicubic): ", total_psnr_bicubic / count)
+    print("SSIM(prediction): ", total_ssim_predicted / count)
+    print("SSIM(bicubic): ", total_ssim_bicubic / count)
 
 def save_img(img, img_name, pred_flag):
     save_img = img.squeeze().clamp(0, 1).numpy().transpose(1,2,0)
-
     # save img
     save_dir=os.path.join(opt.output, opt.data_dir, os.path.splitext(opt.file_list)[0]+'_'+str(opt.upscale_factor)+'x')
     if not os.path.exists(save_dir):
@@ -125,14 +152,22 @@ def save_img(img, img_name, pred_flag):
     cv2.imwrite(save_fn, cv2.cvtColor(save_img*255, cv2.COLOR_BGR2RGB),  [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 def PSNR(pred, gt, shave_border=0):
-    height, width = pred.shape[:2]
-    pred = pred[1+shave_border:height - shave_border, 1+shave_border:width - shave_border, :]
-    gt = gt[1+shave_border:height - shave_border, 1+shave_border:width - shave_border, :]
+    height, width = pred.shape[1:3]
+    pred = pred[:, 1+shave_border:height - shave_border, 1+shave_border:width - shave_border]
+    gt = gt[:, 1+shave_border:height - shave_border, 1+shave_border:width - shave_border]
     imdff = pred - gt
     rmse = math.sqrt(np.mean(imdff ** 2))
     if rmse == 0:
         return 100
     return 20 * math.log10(255.0 / rmse)
+
+def SSIM(pred, gt):
+    prediction = pred.squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    gray_pred = cv2.cvtColor(prediction, cv2.COLOR_BGR2GRAY)
+    ground_truth = gt.squeeze().clamp(0, 1).numpy().transpose(1, 2, 0)
+    gray_gt = cv2.cvtColor(ground_truth, cv2.COLOR_BGR2GRAY)
+    (score, diff) = compare_ssim(gray_pred, gray_gt, full=True, data_range=gray_gt.max()-gray_gt.min())
+    return score
     
 def chop_forward(x, neigbor, flow, model, scale, shave=8, min_size=2000, nGPUs=opt.gpus):
     b, c, h, w = x.size()
