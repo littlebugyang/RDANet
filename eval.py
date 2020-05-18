@@ -8,6 +8,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from rbpn import Net as RBPN
+from rdan import Net as RDAN
 from data import get_test_set
 from functools import reduce
 import numpy as np
@@ -46,7 +47,8 @@ opt.file_list = 'available_list.txt'
 opt.other_dataset = False
 # opt.threads = 1
 opt.nFrames = 7
-opt.model = 'weights/4x_jupyter-231843-416226_1588468073_RBPNF7_epoch_150.pth'
+opt.model_type = 'RBPN'
+opt.model = 'weights/4x_jupyter-231843-416226_1588770396_RBPNF7_epoch_150.pth'
 ###
 
 gpus_list=range(opt.gpus)
@@ -67,6 +69,8 @@ testing_data_loader = DataLoader(dataset=test_set, num_workers=opt.threads, batc
 print('===> Building model ', opt.model_type)
 if opt.model_type == 'RBPN':
     model = RBPN(num_channels=3, base_filter=256,  feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor)
+elif opt.model_type == 'RDAN':
+    model = RDAN(num_channels=3, base_filter=256,  feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor)
 
 if cuda:
     model = torch.nn.DataParallel(model, device_ids=gpus_list)

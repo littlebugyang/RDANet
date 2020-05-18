@@ -10,6 +10,7 @@ import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from rbpn import Net as RBPN
+from rdan import Net as RDAN
 from data import get_training_set, get_eval_set
 import pdb
 import socket
@@ -58,6 +59,7 @@ opt.snapshots = 5
 opt.batchSize = 1
 opt.gpus = 1
 opt.nFrames = 7
+opt.model_type = 'RDAN'
 ###
 
 # continue training
@@ -160,6 +162,8 @@ training_data_loader = DataLoader(dataset=train_set, num_workers=opt.threads, ba
 print('===> Building model ', opt.model_type)
 if opt.model_type == 'RBPN':
     model = RBPN(num_channels=3, base_filter=256, feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor) 
+elif opt.model_type == 'RDAN':
+    model = RDAN(num_channels=3, base_filter=256, feat = 64, num_stages=3, n_resblock=5, nFrames=opt.nFrames, scale_factor=opt.upscale_factor)
 
 model = torch.nn.DataParallel(model, device_ids=gpus_list)
 criterion = nn.L1Loss()
